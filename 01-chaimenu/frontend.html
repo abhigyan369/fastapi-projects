@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chai Point Menu</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0;
+            background: #f8f9fa;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        header h1 {
+            font-size: 2rem;
+            color: #2d3748;
+            margin-bottom: 5px;
+        }
+
+        header p {
+            color: #718096;
+            font-size: 1.1rem;
+        }
+
+        .filters {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .filters section {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .filters label {
+            font-weight: 600;
+            color: #4a5568;
+            margin-right: 10px;
+        }
+
+        .filters select,
+        .filters input[type="checkbox"] {
+            padding: 8px 16px;
+            border: 1px solid #cbd5e0;
+            border-radius: 4px;
+            font-size: 1rem;
+            background: white;
+            cursor: pointer;
+        }
+
+        .filters select:focus,
+        .filters input[type="checkbox"]:focus {
+            outline: none;
+            border-color: #42b983;
+            box-shadow: 0 0 0 2px #ebf8f5;
+        }
+
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .menu-item {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .menu-item:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .menu-item-image {
+            width: 100%;
+            height: 180px;
+            background: #edf2f7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #a0aec0;
+            font-size: 0.9rem;
+        }
+
+        .menu-item-info {
+            padding: 16px;
+        }
+
+        .menu-item-category {
+            display: inline-block;
+            padding: 4px 8px;
+            background: #edf2f7;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .menu-item h3 {
+            margin: 0 0 8px 0;
+            font-size: 1.25rem;
+            color: #2d3748;
+        }
+
+        .menu-item p {
+            margin: 0 0 12px 0;
+            color: #718096;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .menu-item-price {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #2d3748;
+            margin-top: 8px;
+            display: block;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: #718096;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #718096;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Chai Point Menu</h1>
+            <p>Read only menu API for kiosk and mobile devices</p>
+        </header>
+
+        <div class="filters">
+            <section>
+                <label for="category">Category</label>
+                <select id="category" onChange="filterMenu()">
+                    <option value="">All Categories</option>
+                    <option value="chai">Chai</option>
+                    <option value="coffee">Coffee</option>
+                    <option value="snacks">Snacks</option>
+                    <option value="main course">Main Course</option>
+                    <option value="south indian">South Indian</option>
+                    <option value="dessert">Dessert</option>
+                    <option value="beverages">Beverages</option>
+                </select>
+                <label for="available">Available</label>
+                <input type="checkbox" id="available" onChange="filterMenu()">
+                <span id="available-text">Only available</span>
+            </section>
+        </div>
+
+        <div class="menu-grid" id="menuGrid">
+            <div class="loading">Loading menu...</div>
+        </div>
+    </div>
+
+    <script>
+        async function loadMenu(category, available) {
+            const url = new URL('/menu', window.location.origin);
+            if (category) url.searchParams.set('category', category);
+            if (available !== undefined) url.searchParams.set('available', available);
+
+            const response = await fetch(url);
+            const data = await response.json();
+            return data;
+        }
+
+        function renderItem(item) {
+            return `
+                <div class="menu-item" onClick="window.location.href='/menu/${item.id}'">
+                    <div class="menu-item-image">${item.name}</div>
+                    <div class="menu-item-info">
+                        <span class="menu-item-category">${item.category}</span>
+                        <h3>${item.name}</h3>
+                        <p>${item.description}</p>
+                        <div class="menu-item-price">$${item.price.toFixed(2)}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderMenu(items) {
+            const grid = document.getElementById('menuGrid');
+
+            if (items.length === 0) {
+                grid.innerHTML = '<div class="no-results">No items found matching your criteria.</div>';
+                return;
+            }
+
+            grid.innerHTML = items.map(item => renderItem(item)).join('');
+        }
+
+        async function init() {
+            const category = getQueryParam('category');
+            const available = getQueryParam('available');
+
+            const data = await loadMenu(category, available);
+            renderMenu(data.items);
+        }
+
+        function getQueryParam(name) {
+            const url = new URL(window.location.href);
+            return url.searchParams.get(name);
+        }
+
+        function toggleAvailableText() {
+            const checkbox = document.getElementById('available');
+            const text = document.getElementById('available-text');
+            text.textContent = checkbox.checked ? 'Only available' : 'Available';
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
